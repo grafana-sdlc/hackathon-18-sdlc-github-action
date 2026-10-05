@@ -1,0 +1,65 @@
+name: SDLC image provenance
+description: Generate or upload image provenance to automatically discovered SDLC regions.
+inputs:
+  image:
+    description: Fully qualified image name without a tag or digest.
+    required: true
+  digest:
+    description: SHA-256 image manifest or index digest (not a Docker image ID).
+    required: true
+  gateway-url:
+    description: Global GitHub App origin; override only for development or a custom deployment.
+    default: https://sdlc-github.grafana.net
+  bundle-path:
+    description: Existing Sigstore bundle. Omit to generate native GitHub provenance.
+    default: ''
+outputs:
+  event-id:
+    description: Stable event ID for this image and provenance bundle.
+    value: ${{ steps.send.outputs.event-id }}
+  attestation-status:
+    description: sigstore when a bundle was sent, unavailable when native attestation failed.
+    value: ${{ steps.send.outputs.attestation-status }}
+  bundle-path:
+    description: Uploaded Sigstore bundle path.
+    value: ${{ inputs.bundle-path || steps.attest.outputs.bundle-path }}
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      env:
+        SDLC_ACTION_PATH: ${{ github.action_path }}
+        SDLC_IMAGE: ${{ inputs.image }}
+        SDLC_DIGEST: ${{ inputs.digest }}
+        SDLC_GATEWAY_URL: ${{ inputs.gateway-url }}
+      with:
+        script: |
+          const { pathToFileURL } = require('node:url');
+          const { config } = await import(pathToFileURL(process.env.SDLC_ACTION_PATH + '/src/send.mjs').href);
+          config();
+    - name: Generate native provenance
+      if: ${{ inputs.bundle-path == '' }}
+      id: attest
+      continue-on-error: true
+      uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+      with:
+        subject-name: ${{ inputs.image }}
+        subject-digest: ${{ inputs.digest }}
+        push-to-registry: false
+        create-storage-record: false
+    - name: Send image event
+      id: send
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      env:
+        SDLC_ACTION_PATH: ${{ github.action_path }}
+        SDLC_IMAGE: ${{ inputs.image }}
+        SDLC_DIGEST: ${{ inputs.digest }}
+        SDLC_GATEWAY_URL: ${{ inputs.gateway-url }}
+        SDLC_BUNDLE_PATH: ${{ inputs.bundle-path || (steps.attest.outcome == 'success' && steps.attest.outputs.bundle-path) || '' }}
+        SDLC_ATTESTATION_FAILED: ${{ inputs.bundle-path == '' && steps.attest.outcome == 'failure' }}
+      with:
+        script: |
+          const { pathToFileURL } = require('node:url');
+          const { main } = await import(pathToFileURL(process.env.SDLC_ACTION_PATH + '/src/send.mjs').href);
+          await main({ getIDToken: audience => core.getIDToken(audience), mask: token => core.setSecret(token) });
