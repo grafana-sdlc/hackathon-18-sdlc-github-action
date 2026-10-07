@@ -42,7 +42,7 @@ export function createEvent(options, bundle, now = Date.now()) {
   const id = hash(JSON.stringify([options.image, options.digest, bundle, ...(bundle === null ? [options.buildIdentity] : [])]));
   const body = { schema_version: 2, image: { name: options.image, digest: options.digest },
     attestation: bundle === null ? 'unavailable' : 'sigstore', ...(bundle === null ? {} : { provenance: bundle }) };
-  const record = { eventName: 'grafana.sdlc.image.provenance', timeUnixNano: String(BigInt(now) * 1000000n),
+  const record = { eventName: 'grafana.sdlc.github.image.provenance', timeUnixNano: String(BigInt(now) * 1000000n),
     severityNumber: 9, attributes: [attr('grafana.sdlc.event.id', id)], body: { stringValue: JSON.stringify(body) } };
   const event = { resourceLogs: [{ resource: { attributes: [attr('service.name', 'sdlc-github-action')] }, scopeLogs: [{ scope: { name: 'grafana.sdlc.github', version: '1' }, logRecords: [record] }] }] };
   // The ingester's default exclusive limit is 512 KiB including its Kafka key.

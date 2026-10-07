@@ -62,7 +62,7 @@ manifest digests can also differ; this prototype does not resolve those mappings
 
 `POST /github/v1/logs`, `Content-Type: application/json`, OTLP ExportLogsServiceRequest.
 The receiver routes by event name; no topic URL or custom topic header is needed.
-One log record named `grafana.sdlc.image.provenance` has the string attribute
+One log record named `grafana.sdlc.github.image.provenance` has the string attribute
 `grafana.sdlc.event.id` and a JSON-string body:
 
 - `schema_version`: 2.

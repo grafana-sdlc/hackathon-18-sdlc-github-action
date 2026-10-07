@@ -30,7 +30,7 @@ test('preserve complete bundle and stable event identity while keeping credentia
   const second = createEvent(options, input, 2);
   assert.equal(first.id, second.id);
   const record = first.event.resourceLogs[0].scopeLogs[0].logRecords[0];
-  assert.equal(record.eventName, 'grafana.sdlc.image.provenance');
+  assert.equal(record.eventName, 'grafana.sdlc.github.image.provenance');
   const body = JSON.parse(record.body.stringValue);
   assert.deepEqual(body.provenance, input);
   assert.deepEqual(body.image, { name: image, digest });
